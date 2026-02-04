@@ -1,0 +1,46 @@
+# docker-compose.yml
+# Local development environment
+# Uses .env file for configuration
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: csv-processor-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: csv-processor-rabbitmq
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  #   ports:
+  #     - "${RABBITMQ_PORT}:5672"      # AMQP port
+  #     - "${RABBITMQ_MGMT_PORT}:15672" # Management UI
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+
+  minio:
+    image: minio/minio
+    container_name: csv-processor-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"     # API
+      - "${MINIO_CONSOLE_PORT}:9001" # Web console
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
