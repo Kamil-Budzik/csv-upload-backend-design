@@ -1,4 +1,4 @@
-# CSV Processor
+# Hand Written CSV Processor
 
 > **Educational Project** - Learning systems design and backend engineering through hands-on implementation
 
