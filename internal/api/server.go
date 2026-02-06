@@ -12,7 +12,8 @@ type Server struct {
 
 func (s *Server) setupRoutes() {
 	s.router.GET("/health", handlers.GetHealth)
-	s.router.GET("/tasks", handlers.GetTasks)
+	s.router.GET("/tasks", handlers.GetAllTasks)
+	s.router.POST("/tasks", handlers.PostTask)
 }
 
 func NewServer(port string) *Server {

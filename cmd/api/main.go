@@ -11,12 +11,11 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	// DB Setup
+	// DB setup
 	dbCleanup := db.Setup(cfg)
 	defer dbCleanup()
 
 	server := api.NewServer(cfg.Port)
-
 	err := server.Run()
 	if err != nil {
 		log.Fatal(err)

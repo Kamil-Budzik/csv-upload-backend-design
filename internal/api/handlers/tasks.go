@@ -5,9 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kamil-budzik/csv-processor/internal/db"
+	"github.com/kamil-budzik/csv-processor/internal/models"
 )
 
-func GetTasks(c *gin.Context) {
+func GetAllTasks(c *gin.Context) {
 	tasks, err := db.GetTasks()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -16,7 +17,28 @@ func GetTasks(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "ok",
-		"taskIds": tasks,
+		"status": "ok",
+		"tasks":  tasks,
 	})
+}
+
+func PostTask(c *gin.Context) {
+	var input models.TaskCreateInput
+	c.ShouldBindJSON(&input)
+
+	task, err := db.CreateTask(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "Failed to Create Task",
+			"error":  err,
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "Task was created",
+		"task":    task,
+	})
+
 }
