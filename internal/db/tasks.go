@@ -1,26 +1,28 @@
 package db
 
-import "log"
+type Task struct {
+	TaskID string `json:"task_id"`
+}
 
-func InitTasksTable() {
-	schema := `
-	CREATE TABLE IF NOT EXISTS tasks (
-		task_id UUID PRIMARY KEY,
-		status VARCHAR(20) CHECK (status IN ('pending', 'processing', 'finished', 'failed')) NOT NULL,
-		s3_input_path VARCHAR(255) NOT NULL,
-		s3_report_path VARCHAR(255),
-		error_message TEXT,
-		is_retryable BOOL DEFAULT false NOT NULL,
-		created_at TIMESTAMP DEFAULT now() NOT NULL,
-		updated_at TIMESTAMP DEFAULT now(),
-		original_task_id UUID
-	);
-	`
-
-	_, err := DB.Exec(schema)
+func GetTasks() ([]Task, error) {
+	rows, err := DB.Query("SELECT task_id FROM tasks")
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	tasks := []Task{}
+	for rows.Next() {
+		var t Task
+		if err := rows.Scan(&t.TaskID); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, t)
 	}
 
-	log.Println("Tasks table initialized successfully")
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }
