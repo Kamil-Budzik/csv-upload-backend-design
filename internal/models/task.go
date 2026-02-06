@@ -17,3 +17,6 @@ type Task struct {
 type TaskCreateInput struct {
 	S3InputPath string `json:"s3_input_path" binding:"required"`
 }
+type TaskUpdateStatusInput struct {
+	Status string `json:"status" binding:"required,oneof=pending processing finished failed"`
+}

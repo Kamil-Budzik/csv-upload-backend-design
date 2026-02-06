@@ -24,13 +24,17 @@ func GetAllTasks(c *gin.Context) {
 
 func PostTask(c *gin.Context) {
 	var input models.TaskCreateInput
-	c.ShouldBindJSON(&input)
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	task, err := db.CreateTask(input)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "Failed to Create Task",
-			"error":  err,
+			"error":  err.Error(),
 		})
 		return
 	}
@@ -41,6 +45,32 @@ func PostTask(c *gin.Context) {
 		"task":    task,
 	})
 
+}
+
+func PutTask(c *gin.Context) {
+	id := c.Param("task_id")
+	var input models.TaskUpdateStatusInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	task, err := db.UpdateTask(id, input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "Failed to update Task",
+			"task_id": id,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Task was updated",
+		"task":    task,
+	})
 }
 
 func DeleteTask(c *gin.Context) {

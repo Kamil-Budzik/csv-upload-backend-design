@@ -77,11 +77,22 @@ func CreateTask(input models.TaskCreateInput) (models.Task, error) {
 	row := DB.QueryRow(stmt, uuid.New(), "pending", input.S3InputPath)
 	err := row.Scan(&task.TaskID, &task.CreatedAt)
 
-	if err != nil {
-		return task, err
-	}
+	return task, err
+}
 
-	return task, nil
+func UpdateTask(id string, input models.TaskUpdateStatusInput) (models.Task, error) {
+	stmt := `
+	UPDATE tasks
+	SET status = $1, updated_at = now()
+	WHERE task_id = $2
+	RETURNING task_id, status, updated_at;
+	`
+
+	var task models.Task
+	row := DB.QueryRow(stmt, input.Status, id)
+	err := row.Scan(&task.TaskID, &task.Status, &task.UpdatedAt)
+
+	return task, err
 }
 
 func DeleteTask(id string) error {
