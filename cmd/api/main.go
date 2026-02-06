@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/kamil-budzik/csv-processor/internal/api"
 	"github.com/kamil-budzik/csv-processor/internal/config"
@@ -13,12 +12,8 @@ func main() {
 	cfg := config.LoadConfig()
 
 	// DB Setup
-	db.Connect(cfg)
-	defer db.DB.Close()
-	db.InitDB()
-	db.DB.SetMaxOpenConns(25)
-	db.DB.SetMaxIdleConns(25)
-	db.DB.SetConnMaxLifetime(time.Hour)
+	dbCleanup := db.Setup(cfg)
+	defer dbCleanup()
 
 	server := api.NewServer(cfg.Port)
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/kamil-budzik/csv-processor/internal/config"
 	_ "github.com/lib/pq" // Postgres driver
@@ -11,8 +12,18 @@ import (
 
 var DB *sql.DB
 
+func Setup(cfg config.Config) func() {
+	Connect(cfg)
+	InitDB()
+	DB.SetMaxOpenConns(25)
+	DB.SetMaxIdleConns(25)
+	DB.SetConnMaxLifetime(time.Hour)
+
+	return func() { DB.Close() }
+}
+
 func InitDB() {
-	initTasksTable()
+	InitTasksTable()
 }
 
 func Connect(cfg config.Config) {
