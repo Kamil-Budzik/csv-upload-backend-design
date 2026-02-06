@@ -14,10 +14,11 @@ func main() {
 
 	// DB Setup
 	db.Connect(cfg)
+	defer db.DB.Close()
+	db.InitDB()
 	db.DB.SetMaxOpenConns(25)
 	db.DB.SetMaxIdleConns(25)
 	db.DB.SetConnMaxLifetime(time.Hour)
-	defer db.DB.Close()
 
 	server := api.NewServer(cfg.Port)
 
