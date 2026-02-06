@@ -82,5 +82,12 @@ func CreateTask(input models.TaskCreateInput) (models.Task, error) {
 	}
 
 	return task, nil
+}
+
+func DeleteTask(id string) error {
+	stmt := fmt.Sprintf("DELETE FROM %s WHERE task_id = $1", taskTable)
+	_, err := DB.Exec(stmt, id)
+
+	return err
 
 }

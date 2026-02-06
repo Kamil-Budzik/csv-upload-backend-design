@@ -42,3 +42,15 @@ func PostTask(c *gin.Context) {
 	})
 
 }
+
+func DeleteTask(c *gin.Context) {
+	id := c.Param("task_id")
+
+	err := db.DeleteTask(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}

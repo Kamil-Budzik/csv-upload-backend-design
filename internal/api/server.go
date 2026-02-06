@@ -14,6 +14,7 @@ func (s *Server) setupRoutes() {
 	s.router.GET("/health", handlers.GetHealth)
 	s.router.GET("/tasks", handlers.GetAllTasks)
 	s.router.POST("/tasks", handlers.PostTask)
+	s.router.DELETE("/tasks/:task_id", handlers.DeleteTask)
 }
 
 func NewServer(port string) *Server {
