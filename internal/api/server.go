@@ -13,6 +13,7 @@ type Server struct {
 func (s *Server) setupRoutes() {
 	s.router.GET("/health", handlers.GetHealth)
 	s.router.GET("/tasks", handlers.GetAllTasks)
+	s.router.GET("/tasks/:task_id", handlers.GetTask)
 	s.router.POST("/tasks", handlers.PostTask)
 	s.router.PUT("/tasks/:task_id", handlers.PutTask)
 	s.router.DELETE("/tasks/:task_id", handlers.DeleteTask)

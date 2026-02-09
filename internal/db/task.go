@@ -22,8 +22,7 @@ const taskColumns = `
 `
 const taskTable = "tasks"
 
-// To fetch single row you will need to copy this function but instead of sql.Rows u need to use sql.Row. Annoying but it seems to be true
-func scanTask(rows *sql.Rows, t *models.Task) error {
+func scanTasks(rows *sql.Rows, t *models.Task) error {
 	return rows.Scan(
 		&t.TaskID,
 		&t.Status,
@@ -37,6 +36,35 @@ func scanTask(rows *sql.Rows, t *models.Task) error {
 	)
 }
 
+func GetTask(taskId uuid.UUID) (models.Task, error) {
+	stmt := fmt.Sprintf("SELECT %s FROM %s WHERE task_id = $1", taskColumns, taskTable)
+	row := DB.QueryRow(stmt, taskId)
+
+	var t models.Task
+
+	err := row.Scan(
+		&t.TaskID,
+		&t.Status,
+		&t.S3InputPath,
+		&t.S3ReportPath,
+		&t.ErrorMessage,
+		&t.IsRetryable,
+		&t.CreatedAt,
+		&t.UpdatedAt,
+		&t.OriginalTaskID,
+	)
+
+	if err == sql.ErrNoRows {
+		return models.Task{}, ErrTaskNotFound
+	}
+	if err != nil {
+		return models.Task{}, err
+	}
+
+	return t, nil
+}
+
+// Its just a helper for dev env. Later will be protected properly
 func GetTasks() ([]models.Task, error) {
 	sql := fmt.Sprintf("SELECT %s FROM %s", taskColumns, taskTable)
 	rows, err := DB.Query(sql)
@@ -48,14 +76,10 @@ func GetTasks() ([]models.Task, error) {
 	tasks := []models.Task{}
 	for rows.Next() {
 		var t models.Task
-		if err := scanTask(rows, &t); err != nil {
+		if err := scanTasks(rows, &t); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, t)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	return tasks, nil
@@ -73,14 +97,14 @@ func CreateTask(input models.TaskCreateInput) (models.Task, error) {
 	`
 
 	var task models.Task
-	log.Print("input", input)
+
 	row := DB.QueryRow(stmt, uuid.New(), "pending", input.S3InputPath)
 	err := row.Scan(&task.TaskID, &task.CreatedAt)
 
 	return task, err
 }
 
-func UpdateTask(id string, input models.TaskUpdateStatusInput) (models.Task, error) {
+func UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, error) {
 	stmt := `
 	UPDATE tasks
 	SET status = $1, updated_at = now()
@@ -92,12 +116,26 @@ func UpdateTask(id string, input models.TaskUpdateStatusInput) (models.Task, err
 	row := DB.QueryRow(stmt, input.Status, id)
 	err := row.Scan(&task.TaskID, &task.Status, &task.UpdatedAt)
 
+	if err == sql.ErrNoRows {
+		return models.Task{}, ErrTaskNotFound
+	}
+
 	return task, err
 }
 
-func DeleteTask(id string) error {
+func DeleteTask(id uuid.UUID) error {
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE task_id = $1", taskTable)
-	_, err := DB.Exec(stmt, id)
+	result, err := DB.Exec(stmt, id)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if rowsAffected == 0 {
+		return ErrTaskNotFound
+	}
 
 	return err
 
