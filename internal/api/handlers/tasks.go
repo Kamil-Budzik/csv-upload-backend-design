@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,7 +26,8 @@ func parseUUID(c *gin.Context, param string) (uuid.UUID, bool) {
 	id, err := uuid.Parse(c.Param(param))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid task_id format",
+			"status": "error",
+			"data":   "Invalid task_id format",
 		})
 		return uuid.UUID{}, false
 	}
@@ -42,20 +44,22 @@ func (h *Handler) GetTask(c *gin.Context) {
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Task not found",
+			"status": "error",
+			"data":   "Task not found",
 		})
 		return
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"status": "error",
+			"data":   err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"task":   task,
+		"status": "success",
+		"data":   task,
 	})
 }
 
@@ -63,13 +67,14 @@ func (h *Handler) GetAllTasks(c *gin.Context) {
 	tasks, err := h.repo.GetTasks()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"status": "error",
+			"data":   err.Error(),
 		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"tasks":  tasks,
+		"status": "success",
+		"data":   tasks,
 	})
 }
 
@@ -77,23 +82,22 @@ func (h *Handler) PostTask(c *gin.Context) {
 	var input models.TaskCreateInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": err.Error()})
 		return
 	}
 
 	task, err := h.repo.CreateTask(input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "Failed to Create Task",
-			"error":  err.Error(),
+			"status": "error",
+			"data":   fmt.Sprintf("Failed to Create Task %s", err.Error()),
 		})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"message": "Task was created",
-		"task":    task,
+		"status": "success",
+		"data":   task,
 	})
 
 }
@@ -106,30 +110,29 @@ func (h *Handler) PutTask(c *gin.Context) {
 
 	var input models.TaskUpdateStatusInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": err.Error()})
 		return
 	}
 
 	task, err := h.repo.UpdateTask(id, input)
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Task not found",
+			"status": "error",
+			"data":   "Task not found",
 		})
 		return
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "Failed to update Task",
-			"task_id": id,
-			"error":   err.Error(),
+			"status": "error",
+			"data":   fmt.Sprintf("Failed to update Task %s", err.Error()),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Task was updated",
-		"task":    task,
+		"status": "success",
+		"data":   task,
 	})
 }
 
@@ -143,13 +146,14 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Task not found",
+			"status": "error",
+			"data":   "Task not found",
 		})
 		return
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "data": err.Error()})
 		return
 	}
 
