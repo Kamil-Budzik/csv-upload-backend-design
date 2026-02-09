@@ -10,14 +10,20 @@ import (
 	"github.com/kamil-budzik/csv-processor/internal/models"
 )
 
-func GetTask(c *gin.Context) {
-	paramId := c.Param("task_id")
-	id, err := uuid.Parse(paramId)
-
+func parseUUID(c *gin.Context, param string) (uuid.UUID, bool) {
+	id, err := uuid.Parse(c.Param(param))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid task_id format",
 		})
+		return uuid.UUID{}, false
+	}
+	return id, true
+}
+
+func GetTask(c *gin.Context) {
+	id, ok := parseUUID(c, "task_id")
+	if !ok {
 		return
 	}
 
@@ -79,13 +85,8 @@ func PostTask(c *gin.Context) {
 }
 
 func PutTask(c *gin.Context) {
-	paramId := c.Param("task_id")
-	id, err := uuid.Parse(paramId)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid task_id format",
-		})
+	id, ok := parseUUID(c, "task_id")
+	if !ok {
 		return
 	}
 
@@ -119,17 +120,12 @@ func PutTask(c *gin.Context) {
 }
 
 func DeleteTask(c *gin.Context) {
-	paramId := c.Param("task_id")
-	id, err := uuid.Parse(paramId)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid task_id format",
-		})
+	id, ok := parseUUID(c, "task_id")
+	if !ok {
 		return
 	}
 
-	err = db.DeleteTask(id)
+	err := db.DeleteTask(id)
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{

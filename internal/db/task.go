@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/google/uuid"
 	"github.com/kamil-budzik/csv-processor/internal/models"
