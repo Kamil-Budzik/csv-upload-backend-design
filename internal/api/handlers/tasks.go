@@ -15,6 +15,9 @@ type Handler struct {
 }
 
 func NewHandler(repo *db.TaskRepo) *Handler {
+	if repo == nil {
+		panic("NewHandler: repo cannot be nil")
+	}
 	return &Handler{repo: repo}
 }
 

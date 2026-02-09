@@ -13,6 +13,9 @@ type TaskRepo struct {
 }
 
 func NewTaskRepo(db *sql.DB) *TaskRepo {
+	if db == nil {
+		panic("NewTaskRepo: db cannot be nil")
+	}
 	return &TaskRepo{db: db}
 }
 

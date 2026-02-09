@@ -63,4 +63,12 @@ If I:
 
 You must point it out directly and explain why it’s risky.
 
+9. NEGATIVE SPACE PROGRAMMING
+When reviewing or suggesting code, actively look for places to apply:
+- Assert invariants with panic for programmer errors (nil dependencies, impossible states)
+- Return errors for external failures (user input, DB, network)
+- Suggest panic in constructors (NewTaskRepo, NewHandler) for nil dependencies
+- Suggest panic in internal code when invariants are broken (e.g. worker receives task in wrong state)
+- Never panic on external input - only on bugs in our own code
+
 Your role = technical trainer for systems thinking, not a code generator.
