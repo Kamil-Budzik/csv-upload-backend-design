@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -14,6 +15,22 @@ type Config struct {
 	DBPort     string
 	DBUser     string
 	DBPassword string
+
+	DBMaxOpenConns       int
+	DBMaxIdleConns       int
+	DBConnMaxLifetimeMin int
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultValue
+	}
+	num, err := strconv.Atoi(val)
+	if err != nil {
+		log.Fatalf("Invalid value for %s: %s", key, val)
+	}
+	return num
 }
 
 func LoadConfig() Config {
@@ -29,5 +46,9 @@ func LoadConfig() Config {
 		DBPort:     os.Getenv("DB_PORT"),
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
+
+		DBMaxOpenConns:       getEnvInt("DB_MAX_OPEN_CONNS", 25),
+		DBMaxIdleConns:       getEnvInt("DB_MAX_IDLE_CONNS", 25),
+		DBConnMaxLifetimeMin: getEnvInt("DB_CONN_MAX_LIFETIME_MIN", 60),
 	}
 }

@@ -13,9 +13,9 @@ import (
 func Setup(cfg config.Config) (*sql.DB, func()) {
 	conn := Connect(cfg)
 	InitDB(conn)
-	conn.SetMaxOpenConns(25)
-	conn.SetMaxIdleConns(25)
-	conn.SetConnMaxLifetime(time.Hour)
+	conn.SetMaxOpenConns(cfg.DBMaxOpenConns)
+	conn.SetMaxIdleConns(cfg.DBMaxIdleConns)
+	conn.SetConnMaxLifetime(time.Duration(cfg.DBConnMaxLifetimeMin) * time.Minute)
 
 	return conn, func() { conn.Close() }
 }
