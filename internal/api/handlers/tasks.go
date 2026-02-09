@@ -10,6 +10,14 @@ import (
 	"github.com/kamil-budzik/csv-processor/internal/models"
 )
 
+type Handler struct {
+	repo *db.TaskRepo
+}
+
+func NewHandler(repo *db.TaskRepo) *Handler {
+	return &Handler{repo: repo}
+}
+
 func parseUUID(c *gin.Context, param string) (uuid.UUID, bool) {
 	id, err := uuid.Parse(c.Param(param))
 	if err != nil {
@@ -21,13 +29,13 @@ func parseUUID(c *gin.Context, param string) (uuid.UUID, bool) {
 	return id, true
 }
 
-func GetTask(c *gin.Context) {
+func (h *Handler) GetTask(c *gin.Context) {
 	id, ok := parseUUID(c, "task_id")
 	if !ok {
 		return
 	}
 
-	task, err := db.GetTask(id)
+	task, err := h.repo.GetTask(id)
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -42,11 +50,14 @@ func GetTask(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, task)
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"task":   task,
+	})
 }
 
-func GetAllTasks(c *gin.Context) {
-	tasks, err := db.GetTasks()
+func (h *Handler) GetAllTasks(c *gin.Context) {
+	tasks, err := h.repo.GetTasks()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -59,7 +70,7 @@ func GetAllTasks(c *gin.Context) {
 	})
 }
 
-func PostTask(c *gin.Context) {
+func (h *Handler) PostTask(c *gin.Context) {
 	var input models.TaskCreateInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -67,7 +78,7 @@ func PostTask(c *gin.Context) {
 		return
 	}
 
-	task, err := db.CreateTask(input)
+	task, err := h.repo.CreateTask(input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "Failed to Create Task",
@@ -84,7 +95,7 @@ func PostTask(c *gin.Context) {
 
 }
 
-func PutTask(c *gin.Context) {
+func (h *Handler) PutTask(c *gin.Context) {
 	id, ok := parseUUID(c, "task_id")
 	if !ok {
 		return
@@ -96,7 +107,7 @@ func PutTask(c *gin.Context) {
 		return
 	}
 
-	task, err := db.UpdateTask(id, input)
+	task, err := h.repo.UpdateTask(id, input)
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Task not found",
@@ -119,13 +130,13 @@ func PutTask(c *gin.Context) {
 	})
 }
 
-func DeleteTask(c *gin.Context) {
+func (h *Handler) DeleteTask(c *gin.Context) {
 	id, ok := parseUUID(c, "task_id")
 	if !ok {
 		return
 	}
 
-	err := db.DeleteTask(id)
+	err := h.repo.DeleteTask(id)
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{

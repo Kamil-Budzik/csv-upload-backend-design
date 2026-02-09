@@ -10,30 +10,27 @@ import (
 	_ "github.com/lib/pq" // Postgres driver
 )
 
-var DB *sql.DB
+func Setup(cfg config.Config) (*sql.DB, func()) {
+	conn := Connect(cfg)
+	InitDB(conn)
+	conn.SetMaxOpenConns(25)
+	conn.SetMaxIdleConns(25)
+	conn.SetConnMaxLifetime(time.Hour)
 
-func Setup(cfg config.Config) func() {
-	Connect(cfg)
-	InitDB()
-	DB.SetMaxOpenConns(25)
-	DB.SetMaxIdleConns(25)
-	DB.SetConnMaxLifetime(time.Hour)
-
-	return func() { DB.Close() }
+	return conn, func() { conn.Close() }
 }
 
-func InitDB() {
-	InitTasksTable()
+func InitDB(DB *sql.DB) {
+	InitTasksTable(DB)
 }
 
-func Connect(cfg config.Config) {
+func Connect(cfg config.Config) *sql.DB {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName,
 	)
 
-	var err error
-	DB, err = sql.Open("postgres", dsn)
+	DB, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -44,4 +41,5 @@ func Connect(cfg config.Config) {
 	}
 
 	log.Println("Successfully connected to PostgreSQL")
+	return DB
 }

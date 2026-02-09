@@ -1,8 +1,11 @@
 package db
 
-import "log"
+import (
+	"database/sql"
+	"log"
+)
 
-func InitTasksTable() {
+func InitTasksTable(DB *sql.DB) {
 	schema := `
 	CREATE TABLE IF NOT EXISTS tasks (
 		task_id UUID PRIMARY KEY,

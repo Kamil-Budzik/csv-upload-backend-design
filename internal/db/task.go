@@ -8,6 +8,14 @@ import (
 	"github.com/kamil-budzik/csv-processor/internal/models"
 )
 
+type TaskRepo struct {
+	db *sql.DB
+}
+
+func NewTaskRepo(db *sql.DB) *TaskRepo {
+	return &TaskRepo{db: db}
+}
+
 const taskColumns = `
     task_id,
     status,
@@ -35,9 +43,9 @@ func scanTasks(rows *sql.Rows, t *models.Task) error {
 	)
 }
 
-func GetTask(taskId uuid.UUID) (models.Task, error) {
+func (r *TaskRepo) GetTask(taskId uuid.UUID) (models.Task, error) {
 	stmt := fmt.Sprintf("SELECT %s FROM %s WHERE task_id = $1", taskColumns, taskTable)
-	row := DB.QueryRow(stmt, taskId)
+	row := r.db.QueryRow(stmt, taskId)
 
 	var t models.Task
 
@@ -64,9 +72,9 @@ func GetTask(taskId uuid.UUID) (models.Task, error) {
 }
 
 // Its just a helper for dev env. Later will be protected properly
-func GetTasks() ([]models.Task, error) {
+func (r *TaskRepo) GetTasks() ([]models.Task, error) {
 	sql := fmt.Sprintf("SELECT %s FROM %s", taskColumns, taskTable)
-	rows, err := DB.Query(sql)
+	rows, err := r.db.Query(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +92,7 @@ func GetTasks() ([]models.Task, error) {
 	return tasks, nil
 }
 
-func CreateTask(input models.TaskCreateInput) (models.Task, error) {
+func (r *TaskRepo) CreateTask(input models.TaskCreateInput) (models.Task, error) {
 	stmt := `
 	INSERT INTO tasks (
 	    task_id,
@@ -97,13 +105,13 @@ func CreateTask(input models.TaskCreateInput) (models.Task, error) {
 
 	var task models.Task
 
-	row := DB.QueryRow(stmt, uuid.New(), "pending", input.S3InputPath)
+	row := r.db.QueryRow(stmt, uuid.New(), "pending", input.S3InputPath)
 	err := row.Scan(&task.TaskID, &task.CreatedAt)
 
 	return task, err
 }
 
-func UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, error) {
+func (r *TaskRepo) UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, error) {
 	stmt := `
 	UPDATE tasks
 	SET status = $1, updated_at = now()
@@ -112,7 +120,7 @@ func UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, 
 	`
 
 	var task models.Task
-	row := DB.QueryRow(stmt, input.Status, id)
+	row := r.db.QueryRow(stmt, input.Status, id)
 	err := row.Scan(&task.TaskID, &task.Status, &task.UpdatedAt)
 
 	if err == sql.ErrNoRows {
@@ -122,9 +130,9 @@ func UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, 
 	return task, err
 }
 
-func DeleteTask(id uuid.UUID) error {
+func (r *TaskRepo) DeleteTask(id uuid.UUID) error {
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE task_id = $1", taskTable)
-	result, err := DB.Exec(stmt, id)
+	result, err := r.db.Exec(stmt, id)
 
 	if err != nil {
 		return err
