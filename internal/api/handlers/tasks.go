@@ -52,10 +52,10 @@ func (h *Handler) GetTask(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		log.Printf("DB Error inside GetTask %v", err.Error())
+		log.Printf("DB Error inside GetTask %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
-			"data":   "Internal Server errror",
+			"data":   "Internal Server error",
 		})
 		return
 	}
@@ -71,7 +71,7 @@ func (h *Handler) GetAllTasks(c *gin.Context) {
 	tasks, err := h.repo.GetTasks(ctx)
 	if err != nil {
 
-		log.Printf("DB Error inside GetAllTasks %v", err.Error())
+		log.Printf("DB Error inside GetAllTasks %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
 			"data":   "Internal Server Error",
@@ -88,7 +88,8 @@ func (h *Handler) PostTask(c *gin.Context) {
 	var input models.TaskCreateInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": err.Error()})
+		log.Printf("Failed to bind request body %v", input)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": "Invalid JSON format in request body"})
 		return
 	}
 
@@ -96,7 +97,7 @@ func (h *Handler) PostTask(c *gin.Context) {
 	task, err := h.repo.CreateTask(ctx, input)
 	if err != nil {
 
-		log.Printf("DB Error inside PostTask %v", err.Error())
+		log.Printf("DB Error inside PostTask %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
 			"data":   "Internal Server Error. Failed to create Task",
@@ -119,7 +120,7 @@ func (h *Handler) PutTask(c *gin.Context) {
 
 	var input models.TaskUpdateStatusInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": err})
 		return
 	}
 
@@ -142,7 +143,7 @@ func (h *Handler) PutTask(c *gin.Context) {
 	}
 
 	if err != nil {
-		log.Printf("DB Error inside PutTask %v", err.Error())
+		log.Printf("DB Error inside PutTask %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
 			"data":   "Internal Server Error. Failed to Update Task",
@@ -174,7 +175,7 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 	}
 
 	if err != nil {
-		log.Printf("DB Error inside PutTask %v", err.Error())
+		log.Printf("DB Error inside Delete Task %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "data": "Internal Server Error"})
 		return
 	}
