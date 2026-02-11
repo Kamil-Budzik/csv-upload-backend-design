@@ -120,6 +120,10 @@ func (r *TaskRepo) UpdateTask(ctx context.Context, id uuid.UUID, input models.Ta
 	UPDATE tasks
 	SET status = $1, updated_at = now()
 	WHERE task_id = $2
+	   AND (
+	     (status = 'pending' AND $1 = 'processing')
+	     OR (status = 'processing' AND $1 IN ('finished', 'failed'))
+	   )
 	RETURNING task_id, status, s3_input_path, s3_report_path, error_message, is_retryable, created_at, updated_at, original_task_id
 	`
 
@@ -128,7 +132,14 @@ func (r *TaskRepo) UpdateTask(ctx context.Context, id uuid.UUID, input models.Ta
 	err := row.Scan(&task.TaskID, &task.Status, &task.S3InputPath, &task.S3ReportPath, &task.ErrorMessage, &task.IsRetryable, &task.CreatedAt, &task.UpdatedAt, &task.OriginalTaskID)
 
 	if err == sql.ErrNoRows {
-		return models.Task{}, ErrTaskNotFound
+		var exist string
+		checkRow := r.db.QueryRowContext(ctx, "SELECT task_id from tasks WHERE task_id = $1", id)
+		new_err := checkRow.Scan(&exist)
+		if new_err == sql.ErrNoRows {
+			return models.Task{}, ErrTaskNotFound
+		}
+
+		return models.Task{}, ErrInvalidTransition
 	}
 
 	return task, err
