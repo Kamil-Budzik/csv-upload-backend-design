@@ -4,7 +4,7 @@
 Educational project - learn systems design and backend engineering.
 Build async CSV processing system with own infrastructure (no managed services).
 
-## Architecture (Approved in Stages 1-5)
+## Architecture
 ```
 [Client] → [API Server] → [RabbitMQ] → [Worker(s)] → [Storage]
                 ↓                           ↓
@@ -20,184 +20,158 @@ Build async CSV processing system with own infrastructure (no managed services).
 
 ### Task Lifecycle
 ```
-PENDING → PROCESSING → COMPLETED
-                    → FAILED
+PENDING → PROCESSING → FINISHED
+                     → FAILED
+```
+Terminal states: FINISHED, FAILED (retry creates new task via original_task_id)
+
+---
+
+## Project Structure
+```
+/csv-processor
+  /cmd
+    /api/main.go                     ← API server entry point
+    /worker/main.go                  ← Worker entry point (TBD)
+  /internal
+    /api
+      server.go                      ← Server struct, routes, Run()
+      /handlers
+        tasks.go                     ← Task CRUD handlers
+        health.go                    ← Health endpoint
+        repository.go                ← TaskRepository interface
+    /config
+      config.go                      ← Config from .env
+    /db
+      db.go                          ← DB connection, setup, pool config
+      task.go                        ← TaskRepo (implements TaskRepository)
+      errors.go                      ← Sentinel errors
+      init_task.go                   ← Schema initialization
+    /models
+      task.go                        ← Task struct, input DTOs
+  .env
+  docker-compose.yml
+```
+
+## Infrastructure (Docker)
+```
+PostgreSQL:  localhost:5555
+MinIO:       localhost:9002 (API) / 9003 (Console)
+RabbitMQ:    commented out in docker-compose (not needed yet)
 ```
 
 ---
 
-## Current Implementation Status
+## Completed
 
-### ✅ Completed
+### Database Integration
+- [x] PostgreSQL driver (`database/sql` + `lib/pq`)
+- [x] Connection with `Ping()` on startup (fail fast)
+- [x] Connection pool config (max open/idle conns, lifetime)
+- [x] Schema init with `CREATE TABLE IF NOT EXISTS`
+- [x] DB indexes on `status` and `created_at`
 
-#### 1. Project Structure
-```
-/csv-processor
-  /cmd
-    /api
-      main.go          ← API server entry point
-  /internal
-    /api
-      server.go        ← Server struct, routes, handlers
-    /config
-      config.go        ← Config loading from .env
-  .env                 ← Environment variables
-  go.mod
-  go.sum
-```
+### Task Model & Schema
+- [x] `Task` struct with JSON/DB tags, nullable fields as pointers
+- [x] `TaskCreateInput`, `TaskUpdateStatusInput` with Gin binding validation
+- [x] CHECK constraint on status values in DB
+- [x] UUID primary keys
 
-#### 2. Configuration System
-- **File:** `internal/config/config.go`
-- **Method:** `.env` file with `godotenv`
-- **Fields:**
-  - `PORT` (API server port)
-  - `DB_NAME`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` (PostgreSQL)
+### Task Endpoints (API)
+- [x] `GET /health`
+- [x] `GET /tasks` (dev helper, no pagination)
+- [x] `GET /tasks/:task_id`
+- [x] `POST /tasks`
+- [x] `PUT /tasks/:task_id`
+- [x] `DELETE /tasks/:task_id`
+- [x] Standardized response format `{"status": "...", "data": "..."}`
 
-#### 3. API Server
-- **File:** `internal/api/server.go`
-- **Features:**
-  - Server struct with Gin router
-  - `NewServer()` constructor
-  - `Run()` method
-  - `setupRoutes()` for endpoint registration
-- **Current endpoints:**
-  - `GET /health` → `{"status": "ok"}`
+### Database Operations (TaskRepo)
+- [x] `GetTask()` / `GetTasks()` / `CreateTask()` / `UpdateTask()` / `DeleteTask()`
+- [x] All methods use `context.Context` + `*Context` SQL variants
+- [x] Full `RETURNING` clauses (no partial/zero-value responses)
+- [x] Sentinel errors: `ErrTaskNotFound`, `ErrInvalidTransition`
 
-#### 4. Running Infrastructure (Docker)
-```
-✓ PostgreSQL:  localhost:5555 (user: admin, pass: admin123, db: csv_processor)
-✓ Redis:       localhost:6380
-✓ MinIO:       localhost:9002/9003
-```
+### Status State Machine
+- [x] Atomic UPDATE with transition validation in SQL WHERE clause
+- [x] Allowed: `pending→processing`, `processing→finished`, `processing→failed`
+- [x] Disambiguation: ErrNoRows → SELECT to distinguish not-found vs invalid transition
+- [x] Handler returns 409 Conflict on invalid transitions
 
-#### 5. Working Server
-```bash
-go run cmd/api/main.go
-curl localhost:8080/health  # Works!
-```
+### Code Quality & Patterns
+- [x] Dependency injection: `main.go` wires cfg → db → repo → handler → server
+- [x] Negative space programming: panic in constructors for nil dependencies
+- [x] `TaskRepository` interface in handlers package (consumer-side)
+- [x] Handler depends on interface, not concrete `*db.TaskRepo`
+- [x] Internal errors hidden from client (log server-side, generic 500 response)
+- [x] `parseUUID` helper with early return
 
 ---
 
 ## TODO - Next Steps
 
-### Immediate (MVP)
-- [ ] **Database Connection**
-  - Add PostgreSQL driver (`pgx` or `database/sql` + `pq`)
-  - Create DB connection in `internal/database/postgres.go`
-  - Add DB to Server struct
-  - Test connection on startup
+### Immediate
+- [ ] **File Upload to MinIO**
+  - Accept CSV file in `POST /tasks` (multipart form)
+  - Connect to MinIO from API
+  - Upload file, generate S3 path server-side
+  - Remove `s3_input_path` from `TaskCreateInput` (client shouldn't control this)
+  - Store generated path in DB
 
-- [ ] **Task Model & Schema**
-  - Define `Task` struct in `internal/models/task.go`
-  - Create SQL schema (tasks table)
-  - Fields: `id`, `status`, `created_at`, `updated_at`, `error_message`
-
-- [ ] **Task Endpoints (API Contract)**
-  - `POST /tasks` - create task, return task_id
-  - `GET /tasks/:id` - get task status
-  - `GET /tasks/:id/result` - download result (later)
-  - Mock responses first, then wire to DB
-
-- [ ] **Database Operations**
-  - `CreateTask()` - insert new task as PENDING
-  - `GetTask()` - fetch task by ID
-  - `UpdateTaskStatus()` - update status (PROCESSING/COMPLETED/FAILED)
-
-- [ ] **File Upload Handling**
-  - Accept CSV file in `POST /tasks`
-  - Save to MinIO (object storage)
-  - Store file_path in DB
-
-### Later (Post-MVP)
+### Post-MVP
 - [ ] **RabbitMQ Integration**
-  - Setup RabbitMQ connection
-  - Publisher in API (send task to queue)
+  - Setup connection
+  - Publisher in API (send task_id to queue after create)
   - Consumer in Worker
 
 - [ ] **Worker Implementation**
-  - `/cmd/worker/main.go`
+  - Fix `package worker` → `package main`
   - Pull tasks from RabbitMQ
-  - Process CSV
+  - Download CSV from MinIO, process, upload result
   - Update task status in DB
 
-- [ ] **Reliability Features**
-  - Graceful shutdown (SIGTERM/SIGINT handling)
-  - Task timeout mechanism (stuck PROCESSING → FAILED)
-  - Retry logic
+- [ ] **Reliability**
+  - Graceful shutdown (SIGTERM/SIGINT)
+  - Task timeout (stuck PROCESSING → FAILED)
+  - Retry logic (new task with original_task_id)
   - Idempotency
 
 - [ ] **Observability**
-  - Logging library (zerolog)
+  - Structured logging (zerolog or slog)
+  - Health check with DB ping (liveness vs readiness)
   - Metrics
-  - Health checks (DB, Queue)
+
+### Known Debt (conscious decisions)
+- Schema managed by `CREATE TABLE IF NOT EXISTS`, no migration tool yet
+- `GetTasks()` has no pagination, no `rows.Err()` check
+- Errors from `db` package imported in handlers (breaks interface isolation)
+- No tests yet (deferred until worker/async flow exists)
 
 ---
 
-## Key Design Patterns Used
+## Conventions
 
-### 1. Dependency Injection
-```go
-// main.go creates dependencies, passes to server
-cfg := config.LoadConfig()
-server := api.NewServer(cfg.Port)
-```
-
-### 2. Struct Methods
-```go
-type Server struct { ... }
-func (s *Server) Run() error { ... }
-```
-
-### 3. Constructor Pattern
-```go
-func NewServer(port string) *Server {
-    srv := &Server{...}
-    srv.setupRoutes()
-    return srv
-}
-```
+- **Config:** use `cfg`
+- **Exported fields:** CamelCase (`DBHost`)
+- **Error handling:** check all errors, `log.Fatal()` in main, `panic` for nil deps
+- **Imports:** group stdlib / external / internal
+- **Port format:** string with colon (`:8080`)
+- **Context:** always first param in repo methods, from `c.Request.Context()`
+- **Interfaces:** defined where consumed (handler package), not where implemented
 
 ---
 
-## Conventions & Standards
-
-- **Config variables:** Use `cfg` (not `config` or `con`)
-- **Exported fields:** CamelCase with capital letter (`DBHost`, not `db_host`)
-- **Error handling:** Always check errors, use `log.Fatal()` in main
-- **Imports:** Group stdlib, external, internal
-- **Port format:** String with colon (`:8080`)
-
----
-
-## Commands Reference
+## Commands
 
 ```bash
-# Run API server
-go run cmd/api/main.go
-
-# Test health endpoint
-curl localhost:8080/health
-
-# Format code
-go fmt ./...
-
-# Update dependencies
-go mod tidy
-
-# Connect to PostgreSQL (via Docker)
-docker exec -it csv-processor-db psql -U admin -d csv_processor
+go run cmd/api/main.go                                          # Run API
+curl localhost:8080/health                                      # Health check
+go fmt ./...                                                    # Format
+go mod tidy                                                     # Deps
+docker exec -it csv-processor-db psql -U admin -d csv_processor # DB shell
 ```
 
 ---
 
-## Questions to Revisit Later
-
-1. Should routes be split into separate file when we add more endpoints?
-2. How to organize handlers - by entity (`task.go`) or by operation?
-3. When to add graceful shutdown?
-4. Logging strategy - structured logs from day 1 or add later?
-
----
-
-**Last Updated:** 2026-02-04
-**Current Stage:** Stage 6 - Implementation (Database integration next)
+**Last Updated:** 2026-02-10
+**Current Stage:** File Upload to MinIO
