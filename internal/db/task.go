@@ -77,8 +77,8 @@ func (r *TaskRepo) GetTask(ctx context.Context, taskId uuid.UUID) (models.Task, 
 
 // Its just a helper for dev env. Later will be protected properly
 func (r *TaskRepo) GetTasks(ctx context.Context) ([]models.Task, error) {
-	sql := fmt.Sprintf("SELECT %s FROM %s", taskColumns, taskTable)
-	rows, err := r.db.QueryContext(ctx, sql)
+	stmt := fmt.Sprintf("SELECT %s FROM %s", taskColumns, taskTable)
+	rows, err := r.db.QueryContext(ctx, stmt)
 	if err != nil {
 		return nil, err
 	}

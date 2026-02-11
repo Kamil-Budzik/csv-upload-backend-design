@@ -12,12 +12,12 @@ import (
 )
 
 type Handler struct {
-	repo *db.TaskRepo
+	repo TaskRepository
 }
 
-func NewHandler(repo *db.TaskRepo) *Handler {
+func NewHandler(repo TaskRepository) *Handler {
 	if repo == nil {
-		panic("NewHandler: repo cannot be nil")
+		panic("NewHandler: TaskRepository cannot be nil")
 	}
 	return &Handler{repo: repo}
 }
