@@ -40,7 +40,8 @@ func (h *Handler) GetTask(c *gin.Context) {
 		return
 	}
 
-	task, err := h.repo.GetTask(id)
+	ctx := c.Request.Context()
+	task, err := h.repo.GetTask(ctx, id)
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -64,7 +65,8 @@ func (h *Handler) GetTask(c *gin.Context) {
 }
 
 func (h *Handler) GetAllTasks(c *gin.Context) {
-	tasks, err := h.repo.GetTasks()
+	ctx := c.Request.Context()
+	tasks, err := h.repo.GetTasks(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
@@ -86,7 +88,8 @@ func (h *Handler) PostTask(c *gin.Context) {
 		return
 	}
 
-	task, err := h.repo.CreateTask(input)
+	ctx := c.Request.Context()
+	task, err := h.repo.CreateTask(ctx, input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
@@ -114,7 +117,8 @@ func (h *Handler) PutTask(c *gin.Context) {
 		return
 	}
 
-	task, err := h.repo.UpdateTask(id, input)
+	ctx := c.Request.Context()
+	task, err := h.repo.UpdateTask(ctx, id, input)
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status": "error",
@@ -142,7 +146,8 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	err := h.repo.DeleteTask(id)
+	ctx := c.Request.Context()
+	err := h.repo.DeleteTask(ctx, id)
 
 	if errors.Is(err, db.ErrTaskNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{

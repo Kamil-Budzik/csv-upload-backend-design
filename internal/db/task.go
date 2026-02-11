@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -46,9 +47,9 @@ func scanTasks(rows *sql.Rows, t *models.Task) error {
 	)
 }
 
-func (r *TaskRepo) GetTask(taskId uuid.UUID) (models.Task, error) {
+func (r *TaskRepo) GetTask(ctx context.Context, taskId uuid.UUID) (models.Task, error) {
 	stmt := fmt.Sprintf("SELECT %s FROM %s WHERE task_id = $1", taskColumns, taskTable)
-	row := r.db.QueryRow(stmt, taskId)
+	row := r.db.QueryRowContext(ctx, stmt, taskId)
 
 	var t models.Task
 
@@ -75,9 +76,9 @@ func (r *TaskRepo) GetTask(taskId uuid.UUID) (models.Task, error) {
 }
 
 // Its just a helper for dev env. Later will be protected properly
-func (r *TaskRepo) GetTasks() ([]models.Task, error) {
+func (r *TaskRepo) GetTasks(ctx context.Context) ([]models.Task, error) {
 	sql := fmt.Sprintf("SELECT %s FROM %s", taskColumns, taskTable)
-	rows, err := r.db.Query(sql)
+	rows, err := r.db.QueryContext(ctx, sql)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (r *TaskRepo) GetTasks() ([]models.Task, error) {
 	return tasks, nil
 }
 
-func (r *TaskRepo) CreateTask(input models.TaskCreateInput) (models.Task, error) {
+func (r *TaskRepo) CreateTask(ctx context.Context, input models.TaskCreateInput) (models.Task, error) {
 	stmt := `
 	INSERT INTO tasks (
 	    task_id,
@@ -108,13 +109,13 @@ func (r *TaskRepo) CreateTask(input models.TaskCreateInput) (models.Task, error)
 
 	var task models.Task
 
-	row := r.db.QueryRow(stmt, uuid.New(), "pending", input.S3InputPath)
+	row := r.db.QueryRowContext(ctx, stmt, uuid.New(), "pending", input.S3InputPath)
 	err := row.Scan(&task.TaskID, &task.CreatedAt)
 
 	return task, err
 }
 
-func (r *TaskRepo) UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, error) {
+func (r *TaskRepo) UpdateTask(ctx context.Context, id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, error) {
 	stmt := `
 	UPDATE tasks
 	SET status = $1, updated_at = now()
@@ -123,7 +124,7 @@ func (r *TaskRepo) UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) 
 	`
 
 	var task models.Task
-	row := r.db.QueryRow(stmt, input.Status, id)
+	row := r.db.QueryRowContext(ctx, stmt, input.Status, id)
 	err := row.Scan(&task.TaskID, &task.Status, &task.UpdatedAt)
 
 	if err == sql.ErrNoRows {
@@ -133,9 +134,9 @@ func (r *TaskRepo) UpdateTask(id uuid.UUID, input models.TaskUpdateStatusInput) 
 	return task, err
 }
 
-func (r *TaskRepo) DeleteTask(id uuid.UUID) error {
+func (r *TaskRepo) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE task_id = $1", taskTable)
-	result, err := r.db.Exec(stmt, id)
+	result, err := r.db.ExecContext(ctx, stmt, id)
 
 	if err != nil {
 		return err
