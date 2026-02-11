@@ -104,13 +104,13 @@ func (r *TaskRepo) CreateTask(ctx context.Context, input models.TaskCreateInput)
 	    s3_input_path
 	)
 	VALUES ($1, $2, $3)
-	RETURNING task_id, created_at
+	RETURNING task_id, status, s3_input_path, s3_report_path, error_message, is_retryable, created_at, updated_at, original_task_id
 	`
 
 	var task models.Task
 
 	row := r.db.QueryRowContext(ctx, stmt, uuid.New(), "pending", input.S3InputPath)
-	err := row.Scan(&task.TaskID, &task.CreatedAt)
+	err := row.Scan(&task.TaskID, &task.Status, &task.S3InputPath, &task.S3ReportPath, &task.ErrorMessage, &task.IsRetryable, &task.CreatedAt, &task.UpdatedAt, &task.OriginalTaskID)
 
 	return task, err
 }
@@ -120,12 +120,12 @@ func (r *TaskRepo) UpdateTask(ctx context.Context, id uuid.UUID, input models.Ta
 	UPDATE tasks
 	SET status = $1, updated_at = now()
 	WHERE task_id = $2
-	RETURNING task_id, status, updated_at;
+	RETURNING task_id, status, s3_input_path, s3_report_path, error_message, is_retryable, created_at, updated_at, original_task_id
 	`
 
 	var task models.Task
 	row := r.db.QueryRowContext(ctx, stmt, input.Status, id)
-	err := row.Scan(&task.TaskID, &task.Status, &task.UpdatedAt)
+	err := row.Scan(&task.TaskID, &task.Status, &task.S3InputPath, &task.S3ReportPath, &task.ErrorMessage, &task.IsRetryable, &task.CreatedAt, &task.UpdatedAt, &task.OriginalTaskID)
 
 	if err == sql.ErrNoRows {
 		return models.Task{}, ErrTaskNotFound
