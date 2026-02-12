@@ -13,12 +13,16 @@ import (
 
 type Handler struct {
 	repo TaskRepository
+	// store FileStorage
 }
 
 func NewHandler(repo TaskRepository) *Handler {
 	if repo == nil {
 		panic("NewHandler: TaskRepository cannot be nil")
 	}
+	// if store == nil {
+	// 	panic("NewHandler: store cannnot be nil")
+	// }
 	return &Handler{repo: repo}
 }
 

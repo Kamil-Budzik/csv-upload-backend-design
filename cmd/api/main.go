@@ -20,7 +20,7 @@ func main() {
 
 	// Object Storage Setup
 	storageClient := storage.Connect(cfg)
-	store := storage.NewMinioStorage(storageClient, "csv-uploads")
+	store := storage.NewMinioStorage(storageClient, cfg.MinioBucketName)
 	ctx := context.Background()
 	store.CreateBucket(ctx)
 

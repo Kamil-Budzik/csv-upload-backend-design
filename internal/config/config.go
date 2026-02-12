@@ -21,6 +21,7 @@ type Config struct {
 	DBConnMaxLifetimeMin int
 
 	MinioUser        string
+	MinioBucketName  string
 	MinioPassword    string
 	MinioApiPort     string
 	MinioConsolePort string
@@ -56,6 +57,7 @@ func LoadConfig() Config {
 		DBMaxIdleConns:       getEnvInt("DB_MAX_IDLE_CONNS", 25),
 		DBConnMaxLifetimeMin: getEnvInt("DB_CONN_MAX_LIFETIME_MIN", 60),
 
+		MinioBucketName:  os.Getenv("MINIO_BUCKET_NAME"),
 		MinioUser:        os.Getenv("MINIO_USER"),
 		MinioPassword:    os.Getenv("MINIO_PASSWORD"),
 		MinioApiPort:     os.Getenv("MINIO_API_PORT"),
