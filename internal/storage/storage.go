@@ -60,12 +60,17 @@ func (ms MinioStorage) CreateBucket(ctx context.Context) {
 }
 
 func (ms MinioStorage) UploadCSV(ctx context.Context, fileName string, fileSize int64, file io.Reader) (string, error) {
-	uploadInfo, err := ms.client.PutObject(ctx, ms.bucketName, fileName, file, fileSize, minio.PutObjectOptions{
+	_, err := ms.client.PutObject(ctx, ms.bucketName, fileName, file, fileSize, minio.PutObjectOptions{
 		ContentType: "text/csv",
 	})
 	if err != nil {
 		log.Printf("Error in Uploading File %v\n", err)
 	}
-	return uploadInfo.Location, err
+	return fmt.Sprintf("%s/%s", ms.bucketName, fileName), err
 
+}
+
+func (ms MinioStorage) RemoveCSV(ctx context.Context, fileName string) error {
+	err := ms.client.RemoveObject(ctx, ms.bucketName, fileName, minio.RemoveObjectOptions{})
+	return err
 }
