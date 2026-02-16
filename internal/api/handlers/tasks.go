@@ -103,8 +103,6 @@ func (h *Handler) PostTask(c *gin.Context) {
 	}
 
 	opened, err := file.Open()
-	id := uuid.New()
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
@@ -112,12 +110,13 @@ func (h *Handler) PostTask(c *gin.Context) {
 		})
 		return
 	}
-
 	defer opened.Close()
 
-	filePath, err := h.store.UploadCSV(ctx, fmt.Sprintf("%s.csv", id.String()), file.Size, opened)
+	id := uuid.New()
+	fileName := fmt.Sprintf("%s.csv", id.String())
+	filePath, err := h.store.UploadCSV(ctx, fileName, file.Size, opened)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": "Failed to upload file to Minio"})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "data": "Failed to upload file to Minio"})
 		return
 	}
 
@@ -128,6 +127,12 @@ func (h *Handler) PostTask(c *gin.Context) {
 			"status": "error",
 			"data":   "Internal Server Error. Failed to create Task",
 		})
+
+		err = h.store.RemoveCSV(ctx, fileName)
+		if err != nil {
+			log.Printf("Failed to cleanup minio after failed db write. New orphaned resource %v", err)
+		}
+
 		return
 	}
 
