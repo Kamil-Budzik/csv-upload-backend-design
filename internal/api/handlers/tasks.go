@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -102,6 +103,7 @@ func (h *Handler) PostTask(c *gin.Context) {
 	}
 
 	opened, err := file.Open()
+	id := uuid.New()
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -113,13 +115,13 @@ func (h *Handler) PostTask(c *gin.Context) {
 
 	defer opened.Close()
 
-	filePath, err := h.store.UploadCSV(ctx, file.Filename, file.Size, opened)
+	filePath, err := h.store.UploadCSV(ctx, fmt.Sprintf("%s.csv", id.String()), file.Size, opened)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": "Failed to upload file to Minio"})
 		return
 	}
 
-	task, err := h.repo.CreateTask(ctx, filePath)
+	task, err := h.repo.CreateTask(ctx, filePath, id)
 	if err != nil {
 		log.Printf("DB Error inside PostTask %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

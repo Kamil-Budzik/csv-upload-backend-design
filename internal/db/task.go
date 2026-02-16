@@ -96,7 +96,7 @@ func (r *TaskRepo) GetTasks(ctx context.Context) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func (r *TaskRepo) CreateTask(ctx context.Context, path string) (models.Task, error) {
+func (r *TaskRepo) CreateTask(ctx context.Context, path string, id uuid.UUID) (models.Task, error) {
 	stmt := `
 	INSERT INTO tasks (
 	    task_id,
@@ -109,7 +109,7 @@ func (r *TaskRepo) CreateTask(ctx context.Context, path string) (models.Task, er
 
 	var task models.Task
 
-	row := r.db.QueryRowContext(ctx, stmt, uuid.New(), "pending", path)
+	row := r.db.QueryRowContext(ctx, stmt, id, "pending", path)
 	err := row.Scan(&task.TaskID, &task.Status, &task.S3InputPath, &task.S3ReportPath, &task.ErrorMessage, &task.IsRetryable, &task.CreatedAt, &task.UpdatedAt, &task.OriginalTaskID)
 
 	return task, err

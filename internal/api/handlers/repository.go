@@ -10,7 +10,7 @@ import (
 type TaskRepository interface {
 	GetTask(ctx context.Context, id uuid.UUID) (models.Task, error)
 	GetTasks(ctx context.Context) ([]models.Task, error)
-	CreateTask(ctx context.Context, path string) (models.Task, error)
+	CreateTask(ctx context.Context, path string, id uuid.UUID) (models.Task, error)
 	UpdateTask(ctx context.Context, id uuid.UUID, input models.TaskUpdateStatusInput) (models.Task, error)
 	DeleteTask(ctx context.Context, id uuid.UUID) error
 }
