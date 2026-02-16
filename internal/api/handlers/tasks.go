@@ -114,7 +114,7 @@ func (h *Handler) PostTask(c *gin.Context) {
 	}
 
 	if filepath.Ext(file.Filename) != ".csv" {
-		c.JSON(http.StatusBadGateway, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "error",
 			"data":   "You can only upload .csv files",
 		})
