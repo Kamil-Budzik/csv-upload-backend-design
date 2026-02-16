@@ -89,18 +89,38 @@ func (h *Handler) GetAllTasks(c *gin.Context) {
 }
 
 func (h *Handler) PostTask(c *gin.Context) {
-	var input models.TaskCreateInput
+	ctx := c.Request.Context()
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		log.Printf("Failed to bind request body %v", input)
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": "Invalid JSON format in request body"})
+	file, err := c.FormFile("file")
+	if err != nil {
+		log.Printf("Error in parsing formfile %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"data":   "Internal Server Error. Failed to form file",
+		})
 		return
 	}
 
-	ctx := c.Request.Context()
-	task, err := h.repo.CreateTask(ctx, input)
-	if err != nil {
+	opened, err := file.Open()
 
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"data":   "Internal Server Error. Failed to open file",
+		})
+		return
+	}
+
+	defer opened.Close()
+
+	filePath, err := h.store.UploadCSV(ctx, file.Filename, file.Size, opened)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "data": "Failed to upload file to Minio"})
+		return
+	}
+
+	task, err := h.repo.CreateTask(ctx, filePath)
+	if err != nil {
 		log.Printf("DB Error inside PostTask %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",

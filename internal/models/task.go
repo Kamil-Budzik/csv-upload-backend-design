@@ -14,9 +14,6 @@ type Task struct {
 	OriginalTaskID *string    `json:"original_task_id,omitempty" db:"original_task_id"`
 }
 
-type TaskCreateInput struct {
-	S3InputPath string `json:"s3_input_path" binding:"required"`
-}
 type TaskUpdateStatusInput struct {
 	Status string `json:"status" binding:"required,oneof=pending processing finished failed"`
 }

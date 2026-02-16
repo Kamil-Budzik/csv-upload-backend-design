@@ -25,7 +25,7 @@ func main() {
 	store.CreateBucket(ctx)
 
 	repo := db.NewTaskRepo(database)
-	handler := handlers.NewHandler(repo)
+	handler := handlers.NewHandler(repo, store)
 	server := api.NewServer(cfg.Port, handler)
 
 	err := server.Run()
