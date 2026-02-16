@@ -118,12 +118,12 @@ RabbitMQ:    commented out in docker-compose (not needed yet)
  117 +- [x] `FileStorage` interface defined in handlers (consumer-side)
  118 +- [x] Bucket name in config (env var)
  119 +- [x] Wiring in `main.go`: connect → create storage → create bucket
- 120 +- [ ] Implement `UploadCSV` on `MinioStorage` (use `PutObject` + `io.Reader`)
- 121 +- [ ] Wire `MinioStorage` into `Handler` (add `store` field + `NewHandler` param)
- 122 +- [ ] Change `POST /tasks` from JSON to multipart form-data
- 123 +- [ ] File validation: size limit (`MaxBytesReader`), basic type check
- 124 +- [ ] Upload-first flow: upload to MinIO → create task in DB → compensating delete on DB failure
- 125 +- [ ] Remove `s3_input_path` from `TaskCreateInput` (server generates path)
+ 120 +- [x] Implement `UploadCSV` on `MinioStorage` (use `PutObject` + `io.Reader`)
+ 121 +- [x] Wire `MinioStorage` into `Handler` (add `store` field + `NewHandler` param)
+ 122 +- [x] Change `POST /tasks` from JSON to multipart form-data
+ 123 +- [x] File validation: size limit (`MaxBytesReader`), basic type check
+ 124 +- [x] Upload-first flow: upload to MinIO → create task in DB → compensating delete on DB failure
+ 125 +- [x] Remove `s3_input_path` from `TaskCreateInput` (server generates path)
 
 ### Post-MVP
 - [ ] **RabbitMQ Integration**

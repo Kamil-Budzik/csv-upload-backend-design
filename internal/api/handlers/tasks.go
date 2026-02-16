@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -98,6 +99,24 @@ func (h *Handler) PostTask(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
 			"data":   "Internal Server Error. Failed to form file",
+		})
+		return
+	}
+
+	// 10MB
+	if file.Size >= 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"data":   "File is too big. Max file size is 10MB",
+		})
+		return
+
+	}
+
+	if filepath.Ext(file.Filename) != ".csv" {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"status": "error",
+			"data":   "You can only upload .csv files",
 		})
 		return
 	}
