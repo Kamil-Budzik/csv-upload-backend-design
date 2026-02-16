@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/kamil-budzik/csv-processor/internal/config"
@@ -58,6 +59,13 @@ func (ms MinioStorage) CreateBucket(ctx context.Context) {
 	log.Println("Bucket created successfully!")
 }
 
-// type FileStorage interface {
-// 	UploadCSV(ctx context.Context, fileName string, fileSize int64, file io.Reader) (string, error)
-// }
+func (ms MinioStorage) UploadCSV(ctx context.Context, fileName string, fileSize int64, file io.Reader) (minio.UploadInfo, error) {
+	uploadInfo, err := ms.client.PutObject(ctx, ms.bucketName, fileName, file, fileSize, minio.PutObjectOptions{
+		ContentType: "text/csv",
+	})
+	if err != nil {
+		log.Printf("Error in Uploading File %v\n", err)
+	}
+	return uploadInfo, err
+
+}

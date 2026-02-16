@@ -12,18 +12,18 @@ import (
 )
 
 type Handler struct {
-	repo TaskRepository
-	// store FileStorage
+	repo  TaskRepository
+	store FileStorage
 }
 
-func NewHandler(repo TaskRepository) *Handler {
+func NewHandler(repo TaskRepository, store FileStorage) *Handler {
 	if repo == nil {
 		panic("NewHandler: TaskRepository cannot be nil")
 	}
-	// if store == nil {
-	// 	panic("NewHandler: store cannnot be nil")
-	// }
-	return &Handler{repo: repo}
+	if store == nil {
+		panic("NewHandler: store cannnot be nil")
+	}
+	return &Handler{repo: repo, store: store}
 }
 
 func parseUUID(c *gin.Context, param string) (uuid.UUID, bool) {
